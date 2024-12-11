@@ -6,7 +6,7 @@ import streamlit as st
 import numpy as np
 import cv2
 
-# Function to load a model
+
 def load_model(model_name: str, model_type: str):
     """
     Load a pre-trained model.
@@ -19,9 +19,10 @@ def load_model(model_name: str, model_type: str):
         Model: The loaded model.
     """
     if model_type == "CNN":
-        # Load model architecture and weights from .pkl
-        with open(model_name, 'rb') as f:
-            model_data = joblib.load(f)
+        # Load model architecture and weights
+        model_data = joblib.load(model_name)
+        if 'model_architecture' not in model_data or 'model_weights' not in model_data:
+            raise KeyError("The .pkl file does not contain the expected keys ('model_architecture' and 'model_weights').")
         model_json = model_data['model_architecture']
         model_weights = model_data['model_weights']
         model = model_from_json(model_json)
@@ -29,6 +30,7 @@ def load_model(model_name: str, model_type: str):
         return model
     else:
         return joblib.load(model_name)  # Load models for KNN, ANN, SVM
+
 
 # Function to preprocess the image for CNN
 def preprocess_image_for_cnn(img) -> np.ndarray:
