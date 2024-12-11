@@ -1,11 +1,11 @@
-from tensorflow.keras.models import load_model as load_keras_model  # For loading CNN models
+from tensorflow.keras.models import load_model as load_keras_model
 from tensorflow.keras.applications.resnet50 import preprocess_input
 import joblib
 import pandas as pd
 from PIL import Image
 import streamlit as st
 import numpy as np
-import cv2  # For SIFT feature extraction
+import cv2
 
 # Function to load a model
 def load_model(model_name: str, model_type: str):
@@ -20,23 +20,27 @@ def load_model(model_name: str, model_type: str):
         Model: The loaded model.
     """
     if model_type == "CNN":
-        return load_keras_model(model_name)  # Use Keras-specific loader
+        return load_keras_model(model_name)
     else:
-        return joblib.load(model_name)  # Load models for KNN, ANN, SVM
+        return joblib.load(model_name)
 
 # Function to preprocess the image for CNN
-def preprocess_image_for_cnn(img) -> np.ndarray:
+def preprocess_image_for_cnn(img, use_preprocess_input=False) -> np.ndarray:
     """
     Preprocess the image for CNN input.
 
     Args:
         img (PIL.Image): The input image.
+        use_preprocess_input (bool): Whether to use `preprocess_input` for preprocessing.
 
     Returns:
         np.ndarray: Preprocessed image suitable for CNN.
     """
     image_cv = np.array(img.resize((128, 128)))  # Resize to match CNN input
-    image_preprocessed = image_cv / 255.0  # Normalize pixel values
+    if use_preprocess_input:
+        image_preprocessed = preprocess_input(image_cv)  # Use preprocess_input for pretrained models
+    else:
+        image_preprocessed = image_cv / 255.0  # Normalize pixel values for custom-trained models
     return np.expand_dims(image_preprocessed, axis=0)  # Add batch dimension
 
 # Function to extract SIFT features
@@ -82,30 +86,30 @@ def classify_image(img: bytes, model, model_type: str) -> pd.DataFrame:
             features = preprocess_image_for_cnn(image)
             st.text(f"Input shape for CNN: {features.shape}")
             probabilities = model.predict(features)[0]
-            st.text(f"Predicted probabilities: {probabilities}")
-            prediction = [np.argmax(probabilities)]  # Get class with highest probability
+            st.text(f"Full Predicted Probabilities: {probabilities}")
+            prediction = np.argmax(probabilities)  # Get class with highest probability
         else:
             features = extract_features(image)
             if model_type in ["KNN", "SVM"]:
-                prediction = model.predict([features])
+                prediction = model.predict([features])[0]
                 probabilities = model.predict_proba([features])[0]
             elif model_type == "ANN":
-                probabilities = model.predict_proba([features])[0]
-                prediction = [np.argmax(probabilities)]
+                probabilities = model.predict([features])[0]
+                prediction = np.argmax(probabilities)
 
-        # Map numeric predictions to descriptive labels
+        # Dynamic label mapping
         LABEL_MAPPING = {
             0: "Not Fractured",
             1: "Fractured"
         }
-        class_labels = [LABEL_MAPPING[cls] for cls in range(len(probabilities))]
+        class_labels = [LABEL_MAPPING[i] for i in range(len(probabilities))]
 
         # Create a DataFrame to store predictions and probabilities
         prediction_df = pd.DataFrame({
             "Class": class_labels,
             "Probability": probabilities
         })
-        return prediction_df.sort_values("Probability", ascending=False), LABEL_MAPPING[prediction[0]]
+        return prediction_df.sort_values("Probability", ascending=False), LABEL_MAPPING[prediction]
 
     except Exception as e:
         st.error(f"An error occurred during classification: {e}")
@@ -127,7 +131,7 @@ try:
         "KNN": "knn_classifier.pkl",
         "ANN": "ann_classifier.pkl",
         "SVM": "svm_classifier.pkl",
-        "CNN": "small_cnn_with_dropout.h5"  # Updated extension for CNN models
+        "CNN": "small_cnn_with_dropout.h5"
     }
     selected_model_file = model_files[model_type]
 
@@ -137,7 +141,7 @@ try:
     # Print CNN model summary if selected
     if model_type == "CNN":
         st.text("CNN Model Summary:")
-        st.text(model.summary())  # Display the model's architecture
+        st.text(model.summary())
 except FileNotFoundError as e:
     st.error(f"Missing file: {e}")
     st.stop()
