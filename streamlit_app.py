@@ -19,8 +19,31 @@ def load_model(model_name: str, model_type: str):
     Returns:
         Model: The loaded model.
     """
-    
+
     return joblib.load(model_name)
+
+
+# Function to extract SIFT features
+def extract_features(img) -> np.ndarray:
+    """
+    Extract features from the image using SIFT.
+
+    Args:
+        img (PIL.Image): The input image.
+
+    Returns:
+        np.ndarray: Feature vector of fixed size (128).
+    """
+    image_cv = np.array(img)
+    image_cv = cv2.cvtColor(image_cv, cv2.COLOR_RGB2GRAY)  # Convert to grayscale
+
+    sift = cv2.SIFT_create()
+    keypoints, descriptors = sift.detectAndCompute(image_cv, None)
+
+    if descriptors is not None:
+        return descriptors.flatten()[:128]  # Truncate/pad to fixed size
+    else:
+        return np.zeros(128)  # Zero vector if no features are found
 
 # Function to preprocess the image for CNN
 def preprocess_image_for_cnn(img) -> np.ndarray:
