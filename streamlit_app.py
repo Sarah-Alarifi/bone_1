@@ -56,9 +56,11 @@ def preprocess_image_for_cnn(img) -> np.ndarray:
     Returns:
         np.ndarray: Preprocessed image suitable for CNN.
     """
-    image_cv = np.array(img.resize((224, 224)))  # Resize to match CNN input
-    image_preprocessed = preprocess_input(image_cv)  # Apply ResNet50 preprocessing
-    return np.expand_dims(image_preprocessed, axis=0)  # Add batch dimension
+    image_cv = np.array(img.resize((160, 180)))  # Resize to (160, 180) to match 28800 size when flattened
+    image_preprocessed = preprocess_input(image_cv)  # Apply preprocessing
+    flattened = image_preprocessed.flatten()  # Flatten the image to a 1D vector
+    return np.expand_dims(flattened, axis=0)  # Add batch dimension
+
 
 # Function to classify an image
 def classify_image(img: bytes, model, model_type: str) -> pd.DataFrame:
