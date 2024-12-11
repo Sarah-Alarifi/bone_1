@@ -1,11 +1,11 @@
+from tensorflow.keras.models import load_model as load_keras_model  # For loading CNN models
+from tensorflow.keras.applications.resnet50 import preprocess_input
 import joblib
 import pandas as pd
 from PIL import Image
 import streamlit as st
 import numpy as np
 import cv2  # For SIFT feature extraction
-from tensorflow.keras.models import load_model as load_keras_model  # For loading CNN
-from tensorflow.keras.applications.resnet50 import preprocess_input
 
 # Function to load a model
 def load_model(model_name: str, model_type: str):
@@ -19,9 +19,25 @@ def load_model(model_name: str, model_type: str):
     Returns:
         Model: The loaded model.
     """
+    if model_type == "CNN":
+        return joblib.load(model_name)  # Load Keras model
+    else:
+        return joblib.load(model_name)  # Load models for KNN, ANN, SVM
 
-    return joblib.load(model_name)
+# Function to preprocess the image for CNN
+def preprocess_image_for_cnn(img) -> np.ndarray:
+    """
+    Preprocess the image for CNN input.
 
+    Args:
+        img (PIL.Image): The input image.
+
+    Returns:
+        np.ndarray: Preprocessed image suitable for CNN.
+    """
+    image_cv = np.array(img.resize((128, 128)))  # Resize to match CNN input
+    image_preprocessed = image_cv / 255.0  # Normalize pixel values
+    return np.expand_dims(image_preprocessed, axis=0)  # Add batch dimension
 
 # Function to extract SIFT features
 def extract_features(img) -> np.ndarray:
@@ -44,14 +60,6 @@ def extract_features(img) -> np.ndarray:
         return descriptors.flatten()[:128]  # Truncate/pad to fixed size
     else:
         return np.zeros(128)  # Zero vector if no features are found
-
-# Function to preprocess the image for CNN
-def preprocess_image_for_cnn(img) -> np.ndarray:
-    image_cv = np.array(img.resize((128, 128)))  # Resize to match CNN input
-    image_preprocessed = image_cv / 255.0  # Normalize pixel values
-    return np.expand_dims(image_preprocessed, axis=0)  # Add batch dimension
-
-
 
 # Function to classify an image
 def classify_image(img: bytes, model, model_type: str) -> pd.DataFrame:
@@ -117,7 +125,7 @@ try:
         "KNN": "knn_classifier.pkl",
         "ANN": "ann_classifier.pkl",
         "SVM": "svm_classifier.pkl",
-        "CNN": "small_cnn_with_dropout.pkl"  # CNN model file in H5 format
+        "CNN": "small_cnn_with_dropout.pkl"  # Use .h5 format for CNN models
     }
     selected_model_file = model_files[model_type]
 
@@ -132,11 +140,10 @@ except FileNotFoundError as e:
     st.error(f"Missing file: {e}")
     st.stop()
 
-
 if image_file:
     st.image(image_file, caption="Uploaded Image", use_column_width=True)
     pred_button = st.button("Analyze Bone Structure")
-    
+
     if pred_button:
         # Perform image classification
         predictions_df, top_prediction = classify_image(image_file, model, model_type)
