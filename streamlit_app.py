@@ -20,7 +20,7 @@ def load_model(model_name: str, model_type: str):
         Model: The loaded model.
     """
     if model_type == "CNN":
-        return joblib.load(model_name)  # Load Keras model
+        return load_keras_model(model_name)  # Use Keras-specific loader
     else:
         return joblib.load(model_name)  # Load models for KNN, ANN, SVM
 
@@ -80,7 +80,9 @@ def classify_image(img: bytes, model, model_type: str) -> pd.DataFrame:
         # Extract features or preprocess image based on model type
         if model_type == "CNN":
             features = preprocess_image_for_cnn(image)
+            st.text(f"Input shape for CNN: {features.shape}")
             probabilities = model.predict(features)[0]
+            st.text(f"Predicted probabilities: {probabilities}")
             prediction = [np.argmax(probabilities)]  # Get class with highest probability
         else:
             features = extract_features(image)
@@ -125,7 +127,7 @@ try:
         "KNN": "knn_classifier.pkl",
         "ANN": "ann_classifier.pkl",
         "SVM": "svm_classifier.pkl",
-        "CNN": "small_cnn_with_dropout.pkl"  # Use .h5 format for CNN models
+        "CNN": "small_cnn_with_dropout.h5"  # Updated extension for CNN models
     }
     selected_model_file = model_files[model_type]
 
