@@ -47,19 +47,10 @@ def extract_features(img) -> np.ndarray:
 
 # Function to preprocess the image for CNN
 def preprocess_image_for_cnn(img) -> np.ndarray:
-    """
-    Preprocess the image for CNN input.
+    image_cv = np.array(img.resize((128, 128)))  # Resize to match CNN input
+    image_preprocessed = image_cv / 255.0  # Normalize pixel values
+    return np.expand_dims(image_preprocessed, axis=0)  # Add batch dimension
 
-    Args:
-        img (PIL.Image): The input image.
-
-    Returns:
-        np.ndarray: Preprocessed image suitable for CNN.
-    """
-    image_cv = np.array(img.resize((160, 180)))  # Resize to (160, 180) to match 28800 size when flattened
-    image_preprocessed = preprocess_input(image_cv)  # Apply preprocessing
-    flattened = image_preprocessed.flatten()  # Flatten the image to a 1D vector
-    return np.expand_dims(flattened, axis=0)  # Add batch dimension
 
 
 # Function to classify an image
