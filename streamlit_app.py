@@ -126,15 +126,19 @@ try:
         "SVM": "svm_classifier.pkl",
         "CNN": "small_cnn_with_dropout.pkl"  # CNN model file in H5 format
     }
-
-    if model_type == "CNN":
-        print(model.summary())
-        
     selected_model_file = model_files[model_type]
+
+    # Load the model
     model = load_model(selected_model_file, model_type)
+
+    # Print CNN model summary if selected
+    if model_type == "CNN":
+        st.text("CNN Model Summary:")
+        st.text(model.summary())  # Display the model's architecture
 except FileNotFoundError as e:
     st.error(f"Missing file: {e}")
     st.stop()
+
 
 if image_file:
     st.image(image_file, caption="Uploaded Image", use_column_width=True)
