@@ -77,11 +77,26 @@ def classify_image(img: bytes, model, model_type: str) -> pd.DataFrame:
     try:
         image = Image.open(img).convert("RGB")
 
-        # Extract features or preprocess image based on model type
         if model_type == "CNN":
             features = preprocess_image_for_cnn(image)
             probabilities = model.predict(features)[0]
-            prediction = [np.argmax(probabilities)]  # Get class with highest probability
+
+            # For binary classification, use a threshold (e.g., 0.5)
+            if probabilities >= 0.5:
+                prediction = [1]  # "Fractured"
+            else:
+                prediction = [0]  # "Not Fractured"
+
+            LABEL_MAPPING = {0: "Not Fractured", 1: "Fractured"}
+            class_labels = ["Not Fractured", "Fractured"]  # Fixed labels for binary case
+
+            prediction_df = pd.DataFrame({
+                "Class": class_labels,
+                "Probability": [1 - probabilities, probabilities]  # Inverse for "Not Fractured"
+            })
+
+            return prediction_df.sort_values("Probability", ascending=False), LABEL_MAPPING[prediction[0]]
+
         else:
             features = extract_features(image)
             if model_type in ["KNN", "SVM"]:
@@ -91,23 +106,22 @@ def classify_image(img: bytes, model, model_type: str) -> pd.DataFrame:
                 probabilities = model.predict_proba([features])[0]
                 prediction = [np.argmax(probabilities)]
 
-        # Map numeric predictions to descriptive labels
-        LABEL_MAPPING = {
-            0: "Not Fractured",
-            1: "Fractured"
-        }
-        class_labels = [LABEL_MAPPING[cls] for cls in range(len(probabilities))]
+            LABEL_MAPPING = {
+                0: "Not Fractured",
+                1: "Fractured"
+            }
+            class_labels = [LABEL_MAPPING[cls] for cls in range(len(probabilities))]
 
-        # Create a DataFrame to store predictions and probabilities
-        prediction_df = pd.DataFrame({
-            "Class": class_labels,
-            "Probability": probabilities
-        })
-        return prediction_df.sort_values("Probability", ascending=False), LABEL_MAPPING[prediction[0]]
+            prediction_df = pd.DataFrame({
+                "Class": class_labels,
+                "Probability": probabilities
+            })
+            return prediction_df.sort_values("Probability", ascending=False), LABEL_MAPPING[prediction[0]]
 
     except Exception as e:
         st.error(f"An error occurred during classification: {e}")
         return pd.DataFrame(), None
+
 
 # Streamlit app
 st.title("Bone Structure Analysis")
