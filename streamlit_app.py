@@ -126,6 +126,10 @@ try:
         "SVM": "svm_classifier.pkl",
         "CNN": "small_cnn_with_dropout.pkl"  # CNN model file in H5 format
     }
+
+    if model_type == "CNN":
+        print(model.summary())
+        
     selected_model_file = model_files[model_type]
     model = load_model(selected_model_file, model_type)
 except FileNotFoundError as e:
